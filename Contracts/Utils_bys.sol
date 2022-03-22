@@ -36,7 +36,7 @@ contract Utils_bys{
             return false;
         }
     }
-    // From: https://ethereum.stackexchange.com/questions/52246/solidity-extracting-slicing-characters-from-a-string
+    // Inspired by: https://ethereum.stackexchange.com/questions/52246/solidity-extracting-slicing-characters-from-a-string
     function getSlice(uint begin, uint end, string memory text) public pure returns (string memory) {
         bytes memory a = new bytes(end - begin);
         for(uint i; i < end - begin; i++){
