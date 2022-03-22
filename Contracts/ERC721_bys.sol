@@ -138,7 +138,7 @@ contract ERC721_bys is Context, ERC165, IERC721, IERC721Metadata {
     }
 
     function _exists(uint tokenId) internal view virtual returns (bool) {
-        return tokenId < tokenSupply;
+        return (tokenId < tokenSupply) && (ownerOf(tokenId) != address(0));
     }
 
     function _isApprovedOrOwner(address spender, uint tokenId) internal view virtual returns (bool) {
