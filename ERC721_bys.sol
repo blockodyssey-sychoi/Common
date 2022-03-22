@@ -34,9 +34,13 @@ contract ERC721_bys is Context, ERC165, IERC721, IERC721Metadata {
     // Token Supply
     uint private tokenSupply;
 
+    // Owner of the Contract
+    address private owner;
+
     constructor(string memory name_, string memory symbol_) {
         _name = name_;
         _symbol = symbol_;
+        owner = msg.sender;
     }
 
     function supportsInterface(bytes4 interfaceId) public view virtual override(ERC165, IERC165) returns (bool) {
@@ -46,7 +50,6 @@ contract ERC721_bys is Context, ERC165, IERC721, IERC721Metadata {
             super.supportsInterface(interfaceId);
     }
 
-    // Optimized for transactions
     function balanceOf(address owner) public view virtual override returns (uint) {
         require(owner != address(0), "ERC721: balance query for the zero address");
         uint balance;
@@ -62,7 +65,6 @@ contract ERC721_bys is Context, ERC165, IERC721, IERC721Metadata {
         }
         return balance;
     }
-
 
     function ownerOf(uint tokenId) public view virtual override returns (address) {
         require(_exists(tokenId), "Invalid token provided");
@@ -86,6 +88,7 @@ contract ERC721_bys is Context, ERC165, IERC721, IERC721Metadata {
     function tokenURI(uint tokenId) public view virtual override returns (string memory) {}
 
     function approve(address to, uint tokenId) public virtual override {
+        require(msg.sender == owner, "You cannot perform this action!");
         address owner = ownerOf(tokenId);
         require(to != owner, "ERC721: approval to current owner");
 
@@ -103,48 +106,33 @@ contract ERC721_bys is Context, ERC165, IERC721, IERC721Metadata {
         return _tokenApprovals[tokenId];
     }
 
-    function setApprovalForAll(address operator, bool approved) public virtual override {
-        _setApprovalForAll(_msgSender(), operator, approved);
+    function setApprovalForAll(address operator, bool _approved) public virtual override {
+        require(msg.sender == owner, "You cannot perform this action!");
+        _setApprovalForAll(_msgSender(), operator, _approved);
     }
 
     function isApprovedForAll(address owner, address operator) public view virtual override returns (bool) {
         return _operatorApprovals[owner][operator];
     }
 
-    function transferFrom(
-        address from,
-        address to,
-        uint tokenId
-    ) public virtual override {
+    function transferFrom(address from, address to, uint tokenId) public virtual override {
+        require(from != address(0) && to != address(0), "ERC721: transfer to the zero address");
+        require(ownerOf(tokenId) != to, "This address already owns this token");
         require(_isApprovedOrOwner(_msgSender(), tokenId), "ERC721: transfer caller is not owner nor approved");
 
         _transfer(from, to, tokenId);
     }
 
-    function safeTransferFrom(
-        address from,
-        address to,
-        uint tokenId
-    ) public virtual override {
+    function safeTransferFrom(address from, address to, uint tokenId) public virtual override {
         safeTransferFrom(from, to, tokenId, "");
     }
 
-    function safeTransferFrom(
-        address from,
-        address to,
-        uint tokenId,
-        bytes memory _data
-    ) public virtual override {
+    function safeTransferFrom(address from, address to, uint tokenId, bytes memory _data) public virtual override {
         require(_isApprovedOrOwner(_msgSender(), tokenId), "ERC721: transfer caller is not owner nor approved");
         _safeTransfer(from, to, tokenId, _data);
     }
 
-    function _safeTransfer(
-        address from,
-        address to,
-        uint tokenId,
-        bytes memory _data
-    ) internal virtual {
+    function _safeTransfer(address from, address to, uint tokenId, bytes memory _data) internal virtual {
         _transfer(from, to, tokenId);
         require(_checkOnERC721Received(from, to, tokenId, _data), "ERC721: transfer to non ERC721Receiver implementer");
     }
@@ -159,21 +147,15 @@ contract ERC721_bys is Context, ERC165, IERC721, IERC721Metadata {
         return (spender == owner || isApprovedForAll(owner, spender) || getApproved(tokenId) == spender);
     }
 
-    function _safeMint(address to, uint tokenId, uint amount) internal virtual {
-        _safeMint(to, tokenId, "", amount);
+    function _safeMint(address to, uint amount) internal virtual {
+        _safeMint(to, "", amount);
     }
 
-    function _safeMint(
-        address to,
-        uint tokenId,
-        bytes memory _data,
-        uint amount
-    ) internal virtual {
+    function _safeMint(address to, bytes memory _data, uint amount) internal virtual {
         _mint(to, amount);
-        require(
-            _checkOnERC721Received(address(0), to, tokenId, _data),
-            "ERC721: transfer to non ERC721Receiver implementer"
-        );
+        for(uint i = tokenSupply; i > tokenSupply - amount; i--){
+            require(_checkOnERC721Received(address(0), to, i, _data), "ERC721: transfer to non ERC721Receiver implementer");
+        }
     }
 
     function _mint(address to, uint amount) internal virtual {
@@ -196,6 +178,7 @@ contract ERC721_bys is Context, ERC165, IERC721, IERC721Metadata {
     }
 
     function _burn(uint tokenId) internal virtual {
+        require(msg.sender == ownerOf(tokenId),  "You must be the owner of the token for burning it");
         address owner = ownerOf(tokenId);
 
         _beforeTokenTransfer(owner, address(0), tokenId);
@@ -212,26 +195,21 @@ contract ERC721_bys is Context, ERC165, IERC721, IERC721Metadata {
         _afterTokenTransfer(owner, address(0), tokenId);
     }
 
-    function _transfer(
-        address from,
-        address to,
-        uint tokenId
-    ) internal virtual {
-        require(ownerOf(tokenId) == from, "ERC721: transfer from incorrect owner");
-        require(to != address(0), "ERC721: transfer to the zero address");
+    function _transfer(address from, address to, uint tokenId) internal virtual {
 
         _beforeTokenTransfer(from, to, tokenId);
 
         // Clear approvals from the previous owner
         _approve(address(0), tokenId);
 
-        bool found;
-        for(uint i = tokenId; i < tokenSupply && !found; i++){
+        if(tokenId > 0 && _owners[tokenId - 1] == address(0)){
+            _owners[tokenId - 1] = from;
+        }
+        for(uint i = tokenId; i < tokenSupply; i++){
             if(_owners[i] != address(0)){
                 if(_owners[i] != to){
                     _owners[tokenId] = to;
                 }
-                found = true;
             }
         }
 
@@ -245,22 +223,13 @@ contract ERC721_bys is Context, ERC165, IERC721, IERC721Metadata {
         emit Approval(ownerOf(tokenId), to, tokenId);
     }
 
-    function _setApprovalForAll(
-        address owner,
-        address operator,
-        bool approved
-    ) internal virtual {
+    function _setApprovalForAll(address owner, address operator, bool approved) internal virtual {
         require(owner != operator, "ERC721: approve to caller");
         _operatorApprovals[owner][operator] = approved;
         emit ApprovalForAll(owner, operator, approved);
     }
 
-    function _checkOnERC721Received(
-        address from,
-        address to,
-        uint tokenId,
-        bytes memory _data
-    ) private returns (bool) {
+    function _checkOnERC721Received(address from, address to, uint tokenId, bytes memory _data) private returns (bool) {
         if (to.isContract()) {
             try IERC721Receiver(to).onERC721Received(_msgSender(), from, tokenId, _data) returns (bytes4 retval) {
                 return retval == IERC721Receiver.onERC721Received.selector;
@@ -278,15 +247,7 @@ contract ERC721_bys is Context, ERC165, IERC721, IERC721Metadata {
         }
     }
 
-    function _beforeTokenTransfer(
-        address from,
-        address to,
-        uint tokenId
-    ) internal virtual {}
+    function _beforeTokenTransfer(address from, address to, uint tokenId) internal virtual {}
 
-    function _afterTokenTransfer(
-        address from,
-        address to,
-        uint tokenId
-    ) internal virtual {}
+    function _afterTokenTransfer(address from, address to, uint tokenId) internal virtual {}
 }
