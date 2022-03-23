@@ -55,6 +55,8 @@ interface ERC721_bys is IERC721, IERC721Metadata {
     function _setApprovalForAll(address owner, address operator, bool approved) external;
     // Same function as in ERC721 
     function _checkOnERC721Received(address from, address to, uint tokenId, bytes memory _data) external returns (bool);
+    // Enhanced function
+    function _exists(uint256 tokenId) external view returns (bool;
     // Same function as in ERC721 
     function _beforeTokenTransfer(address from, address to, uint tokenId) external;
     // Same function as in ERC721 
