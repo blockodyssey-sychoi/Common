@@ -22,6 +22,9 @@ contract ERC721_bys is Context, ERC165, IERC721, IERC721Metadata {
     // Token symbol
     string private _symbol;
 
+    // Token base URI
+    string internal baseURI;
+
     // Mapping from token ID to owner address
     mapping(uint => address) private _owners;
 
@@ -32,15 +35,15 @@ contract ERC721_bys is Context, ERC165, IERC721, IERC721Metadata {
     mapping(address => mapping(address => bool)) private _operatorApprovals;
 
     // Token Supply
-    uint private tokenSupply;
+    uint internal tokenSupply;
 
     // Owner of the Contract
-    address private owner;
+    address internal contractCreator;
 
     constructor(string memory name_, string memory symbol_) {
         _name = name_;
         _symbol = symbol_;
-        owner = msg.sender;
+        contractCreator = msg.sender;
     }
 
     function supportsInterface(bytes4 interfaceId) public view virtual override(ERC165, IERC165) returns (bool) {
@@ -84,11 +87,19 @@ contract ERC721_bys is Context, ERC165, IERC721, IERC721Metadata {
         return _symbol;
     }
 
+    function getTokenSupply() public view virtual returns (uint){
+        return tokenSupply;
+    }
+
+    function getContractCreator() public view virtual returns (address){
+        return contractCreator;
+    }
+
     // It will be overridden
     function tokenURI(uint tokenId) public view virtual override returns (string memory) {}
 
     function approve(address to, uint tokenId) public virtual override {
-        require(msg.sender == owner, "ERC721_bys: You cannot perform this action!");
+        require(msg.sender == contractCreator, "ERC721_bys: You cannot perform this action!");
         address owner = ownerOf(tokenId);
         require(to != owner, "ERC721_bys: approval to current owner");
 
@@ -107,7 +118,7 @@ contract ERC721_bys is Context, ERC165, IERC721, IERC721Metadata {
     }
 
     function setApprovalForAll(address operator, bool _approved) public virtual override {
-        require(msg.sender == owner, "ERC721_bys: You cannot perform this action!");
+        require(msg.sender == contractCreator, "ERC721_bys: You cannot perform this action!");
         _setApprovalForAll(_msgSender(), operator, _approved);
     }
 
@@ -158,18 +169,18 @@ contract ERC721_bys is Context, ERC165, IERC721, IERC721Metadata {
         require(to != address(0), "ERC721_bys: mint to the zero address");
         require(amount > 0, "ERC721_bys: The mint amount must be greater than zero");
 
-        _beforeTokenTransfer(address(0), to, tokenSupply);
-
         for(uint i; i < amount; i++){
+            _beforeTokenTransfer(address(0), to, tokenSupply);
+
             if(i == amount - 1){
                 _owners[tokenSupply] = to;
             }
+
+            emit Transfer(address(0), to, tokenSupply);
+            _afterTokenTransfer(address(0), to, tokenSupply);
+            
             tokenSupply++;
         }
-
-        emit Transfer(address(0), to, tokenSupply);
-
-        _afterTokenTransfer(address(0), to, tokenSupply);
     }
 
     function _burn(uint tokenId) internal virtual {
