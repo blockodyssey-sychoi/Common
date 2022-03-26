@@ -7,5 +7,8 @@ Main optimizations:
 - The \_mint function is designed for minting a certain amount of tokens natively.
 - In the \_owners array, data is saved in a smart and gas-saving way! For every n tokens minted consecutively, only 1 piece of information will be written in the array.
 - Token Supply integrated natively.
+- Owner of the Smart contract integrated natively.
 ## Utils_bys
-...
+- From uint to string function
+- Get a part of a string from index i, to index j
+- Contains function
