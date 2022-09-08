@@ -187,7 +187,7 @@ contract ERC721_bys is Context, ERC165, IERC721, IERC721Metadata, Ownable {
         // Clear approvals from the previous owner
         _approve(address(0), tokenId);
 
-        if(tokenId > startingId && owners[tokenId - 1] == address(0)){
+        if(tokenId > startingId && ownerOf(tokenId - 1) == from){
             owners[tokenId - 1] = from;
         }
         for(uint i = tokenId; i < tokenSupply + startingId; i++){
